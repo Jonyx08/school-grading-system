@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { db } from '../config/db';
+import { db } from '../config/database';
 
 export const testDatabase = async (req: Request, res: Response) => {
     try {

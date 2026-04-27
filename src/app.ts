@@ -5,7 +5,6 @@ import studentRoutes from "./routes/studentRoutes";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
 
 // Middleware to parse incoming JSON requests
 app.use(express.json());
@@ -14,6 +13,6 @@ app.use(express.json());
 app.use("/estudiantes", studentRoutes);
 
 // Start the server
-app.listen(port, () => {
-    console.log(`Servidor corriendo en puerto ${port}`);
+app.listen(3000, () => {
+    console.log("Servidor corriendo en puerto 3000");
 });
