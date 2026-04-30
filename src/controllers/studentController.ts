@@ -3,7 +3,7 @@ import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { db } from '../config/database';
 import { Estudiante, Materia } from '../models/GradingSystem';
 
-// prueba de conexión que jonixx
+
 export const testDatabase = async (req: Request, res: Response) => {
     try {
         const [rows] = await db.query('SELECT * FROM subjects');
@@ -45,6 +45,56 @@ export const createStudent = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Error al crear el estudiante' });
     }
 };
+
+export const updateStudent = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name, email } = req.body;
+
+        if (!name || !email) {
+            res.status(400).json({ error: 'El nombre y el email son requeridos' });
+            return;
+        }
+
+        const [result] = await db.query<ResultSetHeader>(
+            'UPDATE students SET name = ?, email = ? WHERE id = ?',
+            [name, email, id]
+        );
+
+        if (result.affectedRows === 0) {
+            res.status(404).json({ error: 'Estudiante no encontrado' });
+            return;
+        }
+
+        res.json({ message: 'Estudiante actualizado correctamente', id, name, email });
+    } catch (error) {
+        console.error('ERROR AL ACTUALIZAR ESTUDIANTE:', error);
+        res.status(500).json({ error: 'Error al actualizar el estudiante' });
+    }
+};
+
+// ELIMINAR (Delete) - Borra un estudiante
+export const deleteStudent = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const [result] = await db.query<ResultSetHeader>(
+            'DELETE FROM students WHERE id = ?',
+            [id]
+        );
+
+        if (result.affectedRows === 0) {
+            res.status(404).json({ error: 'Estudiante no encontrado' });
+            return;
+        }
+
+        res.json({ message: 'Estudiante eliminado correctamente' });
+    } catch (error) {
+        console.error('ERROR AL ELIMINAR ESTUDIANTE:', error);
+        res.status(500).json({ error: 'Error al eliminar el estudiante' });
+    }
+};
+
 
 // registra una nota para un estudiante en una materia
 export const addGrade = async (req: Request, res: Response) => {
@@ -98,8 +148,6 @@ export const getStudentAverage = async (req: Request, res: Response) => {
             return;
         }
 
-        // construimos el objeto Estudiante con sus Materias
-        // aquí es donde el polimorfismo hace su trabajo
         const estudiante = new Estudiante(studentRows[0]!.name);
         const materiasMap = new Map<string, Materia>();
 
@@ -114,21 +162,103 @@ export const getStudentAverage = async (req: Request, res: Response) => {
             estudiante.agregarMateria(materia);
         }
 
-        // armamos la respuesta con detalle por materia y promedio general
         const detalle = estudiante.materias.map(m => ({
             materia:  m.nombre,
             promedio: m.calcularPromedio(),
-            estado:   m.obtenerEstado()   // polimorfismo en acción
+            estado:   m.obtenerEstado()  
         }));
 
         res.json({
             estudiante:       estudiante.nombre,
             detalle_materias: detalle,
             promedio_general: estudiante.calcularPromedio(),
-            estado_general:   estudiante.obtenerEstado()  // misma función, objeto distinto
+            estado_general:   estudiante.obtenerEstado()
         });
 
     } catch (error) {
         res.status(500).json({ error: 'Error al calcular el promedio' });
+    }
+};
+
+// ver todas las materias
+
+export const getAllSubjects = async (req: Request, res: Response) => {
+    try {
+        const [rows] = await db.query<RowDataPacket[]>('SELECT * FROM subjects');
+        res.json(rows);
+    } catch (error) {
+        console.error('ERROR AL OBTENER MATERIAS:', error);
+        res.status(500).json({ error: 'Error al obtener las materias' });
+    }
+};
+
+// añadir materia
+export const addSubject = async (req: Request, res: Response) => {
+    try {
+        const { name } = req.body;
+
+        if (!name) {
+            res.status(400).json({ error: 'El nombre de la materia es requerido' });
+            return;
+        }
+
+        const [result] = await db.query<ResultSetHeader>(
+            'INSERT INTO subjects (name) VALUES (?)', 
+            [name]
+        );
+        res.status(201).json({ id: result.insertId, name });
+    } catch (error) {
+        console.error('ERROR AL CREAR MATERIA:', error);
+        res.status(500).json({ error: 'Error al registrar la materia' });
+    }
+};
+
+// actualizacion
+export const updateSubject = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name } = req.body;
+
+        if (!name) {
+            res.status(400).json({ error: 'El nombre de la materia es requerido' });
+            return;
+        }
+
+        const [result] = await db.query<ResultSetHeader>(
+            'UPDATE subjects SET name = ? WHERE id = ?',
+            [name, id]
+        );
+
+        if (result.affectedRows === 0) {
+            res.status(404).json({ error: 'Materia no encontrada' });
+            return;
+        }
+
+        res.json({ message: 'Materia actualizada correctamente', id, name });
+    } catch (error) {
+        console.error('ERROR AL ACTUALIZAR MATERIA:', error);
+        res.status(500).json({ error: 'Error al actualizar la materia' });
+    }
+};
+
+// eliminar
+export const deleteSubject = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const [result] = await db.query<ResultSetHeader>(
+            'DELETE FROM subjects WHERE id = ?',
+            [id]
+        );
+
+        if (result.affectedRows === 0) {
+            res.status(404).json({ error: 'Materia no encontrada' });
+            return;
+        }
+
+        res.json({ message: 'Materia eliminada correctamente' });
+    } catch (error) {
+        console.error('ERROR AL ELIMINAR MATERIA:', error);
+        res.status(500).json({ error: 'Error al eliminar la materia (Verifica que no tenga notas asignadas)' });
     }
 };
