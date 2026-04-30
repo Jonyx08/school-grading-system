@@ -41,6 +41,7 @@ export const createStudent = async (req: Request, res: Response) => {
 
         res.status(201).json({ id: result.insertId, name, email });
     } catch (error) {
+        console.error('ERROR REAL AL CREAR ESTUDIANTE:', error); // <-- Agrega esta línea
         res.status(500).json({ error: 'Error al crear el estudiante' });
     }
 };
@@ -99,7 +100,7 @@ export const getStudentAverage = async (req: Request, res: Response) => {
 
         // construimos el objeto Estudiante con sus Materias
         // aquí es donde el polimorfismo hace su trabajo
-        const estudiante = new Estudiante(studentRows[0].name);
+        const estudiante = new Estudiante(studentRows[0]!.name);
         const materiasMap = new Map<string, Materia>();
 
         for (const row of gradeRows) {
